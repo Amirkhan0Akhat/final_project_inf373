@@ -1,2 +1,7 @@
 /.venv
+/media
+/static
+/staticfiles
+__pycache__/
+*.py[cod]
 .env

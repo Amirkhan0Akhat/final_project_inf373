@@ -24,6 +24,7 @@ class Document(models.Model):
 class Member(models.Model):
     member = models.ForeignKey(User, on_delete=models.CASCADE, related_name='memberships')
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='members')
+    is_owner = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ('member', 'project')
@@ -33,7 +34,8 @@ class Member(models.Model):
 
 class Comment(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='comments')
-    username = models.CharField(max_length=150)  # или ForeignKey к User, если надо связать
+    username = models.CharField(max_length=150, null=True, blank=True)  # или ForeignKey к User, если надо связать
+    user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
     text = models.TextField()
 
     def __str__(self):
