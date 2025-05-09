@@ -23,16 +23,20 @@ logger = logging.getLogger(__name__)
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Comment.objects.all()
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user, username=self.request.user.username)
+        serializer.save(user=self.request.user)
 
-    @action(detail=False, methods=['get'], url_path='project/(?P<project_id>[^/.]+)')
-    def by_project(self, request, project_id=None):
-        comments = Comment.objects.filter(project_id=project_id)
-        serializer = self.get_serializer(comments, many=True)
-        return Response(serializer.data)
+    def destroy(self, request, *args, **kwargs):
+        comment = self.get_object()
+        user = request.user
+        if comment.user == user or comment.project.owner == user:
+            return super().destroy(request, *args, **kwargs)
+        return Response({'detail': 'Not allowed to delete this comment.'}, status=403)
 
 class ProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all()
@@ -129,7 +133,7 @@ class MemberViewSet(viewsets.ViewSet):
         if user:
             member, created = Member.objects.get_or_create(member=user, project=project)
             if not created:
-                return Response({'detail': 'User is already a member of the project.'}, status=400)
+                return Response({'detail': 'User is` already a member of the project.'}, status=400)
 
             return Response({'detail': f'{email} has been added to the project.'}, status=status.HTTP_200_OK)
 
@@ -160,7 +164,6 @@ class DocumentViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         document = self.get_object()
         project = document.project
-
 
         if request.user != project.owner and not project.members.filter(member=request.user).exists():
             raise PermissionDenied("You do not have permission to delete this document.")

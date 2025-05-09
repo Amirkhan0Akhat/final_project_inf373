@@ -30,21 +30,32 @@ class DocumentSerializer(serializers.ModelSerializer):
         model = Document
         fields = ['id', 'project', 'name', 'file']
 
-class ProjectSerializer(serializers.ModelSerializer):
-    owner = UserSerializer(read_only=True)
-    documents = DocumentSerializer(many=True, read_only=True)  # добавляем сюда
-
-    class Meta:
-        model = Project
-        fields = ['id', 'project_name', 'owner', 'documents']
-
 class CommentSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
+    is_owner = serializers.SerializerMethodField()
+    is_project_owner = serializers.SerializerMethodField()
+    username = serializers.CharField(source='user.username', read_only=True)
 
     class Meta:
         model = Comment
-        fields = ['id', 'project', 'user', 'text']
+        fields = ['id', 'project', 'user', 'text', 'created_at', 'is_owner', 'is_project_owner', 'username']
+        read_only_fields = ['user']
 
+    def get_is_owner(self, obj):
+        request = self.context.get('request')
+        return obj.user == request.user if request else False
+
+    def get_is_project_owner(self, obj):
+        request = self.context.get('request')
+        return obj.project.owner == request.user if request else False
+
+class ProjectSerializer(serializers.ModelSerializer):
+    owner = UserSerializer(read_only=True)
+    documents = DocumentSerializer(many=True, read_only=True)
+    comments = CommentSerializer(many=True, read_only=True, source='comment_set')
+
+    class Meta:
+        model = Project
+        fields = ['id', 'project_name', 'owner', 'documents', 'comments']
 
 class MemberSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source='member.id', read_only=True)

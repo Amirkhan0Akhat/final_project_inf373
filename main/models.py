@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from final_project.storages import MinIOStorage
 
 class User(AbstractUser):
     email = models.EmailField(unique=True)
@@ -15,7 +16,7 @@ class Project(models.Model):
 
 class Document(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='documents')
-    file = models.FileField(upload_to='documents/')
+    file = models.FileField(storage=MinIOStorage(), upload_to='documents/', blank=True, null=True)
     name = models.CharField(max_length=255)
 
     def __str__(self):
@@ -33,10 +34,15 @@ class Member(models.Model):
         return f"{self.member.username} in {self.project.project_name}"
 
 class Comment(models.Model):
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='comments')
-    username = models.CharField(max_length=150, null=True, blank=True)  # или ForeignKey к User, если надо связать
-    user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
     text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
 
-    def __str__(self):
-        return f"Comment by {self.username} on {self.project.project_name}"
+    @property
+    def username(self):
+        return self.user.username
+
+    @property
+    def project_name(self):
+        return self.project.project_name

@@ -49,7 +49,8 @@ INSTALLED_APPS = [
     'main',
     'rest_framework',
     'drf_spectacular',
-    'corsheaders'
+    'corsheaders',
+    'storages'
 ]
 
 MIDDLEWARE = [
@@ -133,8 +134,20 @@ STATIC_URL = '/app/staticfiles/'
 STATIC_ROOT = '/app/staticfiles/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+AWS_ACCESS_KEY_ID = os.getenv("MINIO_ROOT_USER", "minioadmin")
+AWS_SECRET_ACCESS_KEY = os.getenv("MINIO_ROOT_PASSWORD", "minioadmin")
+AWS_STORAGE_BUCKET_NAME = os.getenv("MINIO_BUCKET_NAME", "documents-bucket")
+
+AWS_S3_ENDPOINT_URL = "http://minio:9000"
+AWS_S3_CUSTOM_DOMAIN = "localhost:9000/documents-bucket"
+MEDIA_URL = "localhost:9000/documents-bucket/"
+
+AWS_S3_SECURE_URLS = False
+
+AWS_QUERYSTRING_AUTH = False
+AWS_S3_ADDRESSING_STYLE = "path"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

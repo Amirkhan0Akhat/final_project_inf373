@@ -47,6 +47,19 @@ services:
       AWS_S3_REGION_NAME: us-east-1
       AWS_S3_USE_SSL: "false"
 
+  createbuckets:
+    image: minio/mc
+    depends_on:
+      - minio
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >
+        /usr/bin/mc alias set myminio http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
+        /usr/bin/mc mb -p myminio/documents-bucket &&
+        /usr/bin/mc policy set public myminio/documents-bucket
+    env_file:
+      - .env
+
   nginx:
     image: nginx:latest
     restart: always
