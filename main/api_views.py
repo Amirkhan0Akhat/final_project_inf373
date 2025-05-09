@@ -38,6 +38,18 @@ class CommentViewSet(viewsets.ModelViewSet):
             return super().destroy(request, *args, **kwargs)
         return Response({'detail': 'Not allowed to delete this comment.'}, status=403)
 
+    @action(detail=False, methods=['get'], url_path='by-project/(?P<project_id>[^/.]+)')
+    def by_project(self, request, project_id=None):
+        comments = Comment.objects.filter(project_id=project_id)
+        serializer = self.get_serializer(comments, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='by-user/(?P<user_id>[^/.]+)')
+    def by_user(self, request, user_id=None):
+        comments = Comment.objects.filter(user_id=user_id)
+        serializer = self.get_serializer(comments, many=True)
+        return Response(serializer.data)
+
 class ProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
