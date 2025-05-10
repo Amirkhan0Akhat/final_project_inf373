@@ -1,15 +1,9 @@
 from rest_framework import viewsets, permissions, status
-from rest_framework.response import Response
-from rest_framework.decorators import action
 from .models import Project, Document, Comment, Member, User
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.core.files.storage import FileSystemStorage
-from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import PermissionDenied
-from django.views.decorators.csrf import csrf_exempt
 from django.core.mail import send_mail
 from rest_framework.decorators import action
 from django.http import FileResponse
@@ -17,6 +11,7 @@ from .serializers import (
     ProjectSerializer, DocumentSerializer,
     CommentSerializer, MemberSerializer
 )
+from django.core.cache import cache
 import logging
 
 logger = logging.getLogger(__name__)
@@ -57,16 +52,26 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         project = serializer.save(owner=self.request.user)
-        # Добавляем владельца в участники
         Member.objects.create(member=self.request.user, project=project, is_owner=True)
+
+        cache_key = f"user-projects:{self.request.user.id}"
+        cache.delete(cache_key)
 
     def get_queryset(self):
         user = self.request.user
+        cache_key = f"user-projects:{user.id}"
+        cached_projects = cache.get(cache_key)
+
+        if cached_projects is not None:
+            return cached_projects
+
         owned = Project.objects.filter(owner=user)
         member = Project.objects.filter(members__member=user)
-        return (owned | member).distinct()
+        projects = (owned | member).distinct()
 
-    # Добавим кастомное представление для получения участников
+        cache.set(cache_key, projects, timeout=300)
+        return projects
+
     @action(detail=True, methods=['get'], url_path='members')
     def project_members(self, request, pk=None):
         project = self.get_object()
